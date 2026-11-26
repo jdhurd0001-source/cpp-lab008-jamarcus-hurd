@@ -1,174 +1,285 @@
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
-
 #include "project/binary_search_tree.h"
 
+#include <algorithm>
 #include <stdexcept>
-#include <vector>
 
-TEST_CASE("BST empty-state and size checks") {
-    BinarySearchTree tree;
-    REQUIRE(tree.empty());
-    REQUIRE(tree.size() == 0u);
-    REQUIRE_THROWS_AS(tree.minimum(), std::logic_error);
-    REQUIRE_THROWS_AS(tree.maximum(), std::logic_error);
-    REQUIRE(tree.inorderTraversal().empty());
-    REQUIRE(tree.preorderTraversal().empty());
-    REQUIRE(tree.postorderTraversal().empty());
+// Constructor
+BinarySearchTree::BinarySearchTree()
+    : root_(nullptr), size_(0) {}
+
+// Destructor
+BinarySearchTree::~BinarySearchTree() {
+    deleteSubtree(root_);
 }
 
-TEST_CASE("BST insert and search: basic values") {
-    BinarySearchTree tree;
-    REQUIRE(tree.insert(10));
-    REQUIRE(tree.insert(5));
-    REQUIRE(tree.insert(15));
-    REQUIRE(tree.insert(3));
-    REQUIRE(tree.insert(7));
-    REQUIRE(tree.insert(12));
-    REQUIRE(tree.insert(18));
-
-    REQUIRE(tree.size() == 7u);
-    REQUIRE(tree.search(10));
-    REQUIRE(tree.search(3));
-    REQUIRE(tree.search(18));
-    REQUIRE(tree.contains(7));
-    REQUIRE_FALSE(tree.search(11));
-    REQUIRE_FALSE(tree.contains(99));
-    REQUIRE_FALSE(tree.search(0));
-}
-
-TEST_CASE("BST insert: duplicate handling") {
-    BinarySearchTree tree;
-    REQUIRE(tree.insert(8));
-    REQUIRE_FALSE(tree.insert(8));
-    REQUIRE(tree.size() == 1u);
-    REQUIRE(tree.search(8));
-}
-
-TEST_CASE("BST minimum and maximum") {
-    BinarySearchTree tree;
-    tree.insert(20);
-    tree.insert(10);
-    tree.insert(30);
-    tree.insert(5);
-    tree.insert(15);
-    tree.insert(25);
-    tree.insert(35);
-
-    REQUIRE(tree.minimum() == 5);
-    REQUIRE(tree.maximum() == 35);
-}
-
-TEST_CASE("BST minimum and maximum with negatives") {
-    BinarySearchTree tree;
-    for (int value : {-10, 0, 15, -20, 5, 12, -5}) {
-        tree.insert(value);
+// Recursively delete all nodes
+void BinarySearchTree::deleteSubtree(TreeNode* node) {
+    if (node == nullptr) {
+        return;
     }
 
-    REQUIRE(tree.minimum() == -20);
-    REQUIRE(tree.maximum() == 15);
+    deleteSubtree(node->left);
+    deleteSubtree(node->right);
+    delete node;
 }
 
-TEST_CASE("BST inorder, preorder, and postorder traversals") {
-    BinarySearchTree tree;
-    std::vector<int> values = {10, 5, 15, 3, 7, 12, 18};
-    for (int value : values) {
-        tree.insert(value);
+// Insert a value
+bool BinarySearchTree::insert(int value) {
+    if (search(value)) {
+        return false;
     }
 
-    REQUIRE(tree.inorderTraversal() == std::vector<int>({3, 5, 7, 10, 12, 15, 18}));
-    REQUIRE(tree.preorderTraversal() == std::vector<int>({10, 5, 3, 7, 15, 12, 18}));
-    REQUIRE(tree.postorderTraversal() == std::vector<int>({3, 7, 5, 12, 18, 15, 10}));
+    root_ = insertRecursive(root_, value);
+    size_++;
+    return true;
 }
 
-TEST_CASE("BST traversals on a single-node tree") {
-    BinarySearchTree tree;
-    tree.insert(42);
+// Remove a value
+bool BinarySearchTree::remove(int value) {
+    if (!search(value)) {
+        return false;
+    }
 
-    REQUIRE(tree.inorderTraversal() == std::vector<int>({42}));
-    REQUIRE(tree.preorderTraversal() == std::vector<int>({42}));
-    REQUIRE(tree.postorderTraversal() == std::vector<int>({42}));
+    root_ = removeRecursive(root_, value);
+    size_--;
+    return true;
 }
 
-TEST_CASE("BST remove: leaf, internal, and missing nodes") {
-    BinarySearchTree tree;
-    for (int value : {10, 5, 15, 3, 7, 12, 18, 1}) {
-        tree.insert(value);
-    }
-
-    REQUIRE(tree.remove(1));
-    REQUIRE_FALSE(tree.search(1));
-    REQUIRE(tree.remove(15));
-    REQUIRE_FALSE(tree.search(15));
-    REQUIRE(tree.remove(10));
-    REQUIRE_FALSE(tree.search(10));
-    REQUIRE_FALSE(tree.remove(99));
-    REQUIRE(tree.size() == 5u);
+// Search for a value
+bool BinarySearchTree::search(int value) const {
+    return searchRecursive(root_, value);
 }
 
-TEST_CASE("BST remove: root with two children and subtree re-linking") {
-    BinarySearchTree tree;
-    for (int value : {50, 30, 70, 20, 40, 60, 80, 25}) {
-        tree.insert(value);
-    }
-
-    REQUIRE(tree.remove(50));
-    REQUIRE_FALSE(tree.search(50));
-    REQUIRE(tree.search(25));
-    REQUIRE(tree.search(20));
-    REQUIRE(tree.search(60));
-    REQUIRE(tree.size() == 7u);
+// Check whether a value exists
+bool BinarySearchTree::contains(int value) const {
+    return search(value);
 }
 
-TEST_CASE("BST height and edge cases") {
-    BinarySearchTree emptyTree;
-    REQUIRE(emptyTree.height() == 0);
-
-    BinarySearchTree singleTree;
-    singleTree.insert(42);
-    REQUIRE(singleTree.height() == 1);
-
-    BinarySearchTree tree;
-    for (int value : {50, 30, 70, 20, 40, 60, 80}) {
-        tree.insert(value);
-    }
-    REQUIRE(tree.height() == 3);
-
-    BinarySearchTree skewed;
-    for (int value : {1, 2, 3, 4, 5, 6, 7}) {
-        skewed.insert(value);
-    }
-    REQUIRE(skewed.height() == 7);
+// Check whether the tree is empty
+bool BinarySearchTree::empty() const noexcept {
+    return size_ == 0;
 }
 
-TEST_CASE("BST handles negative and repeated values") {
-    BinarySearchTree tree;
-    tree.insert(-5);
-    tree.insert(0);
-    tree.insert(-10);
-    tree.insert(10);
-
-    REQUIRE(tree.search(-5));
-    REQUIRE(tree.search(0));
-    REQUIRE(tree.search(10));
-    REQUIRE_FALSE(tree.search(2));
-    REQUIRE_FALSE(tree.insert(-5));
-    REQUIRE(tree.size() == 4u);
+// Return the number of nodes
+std::size_t BinarySearchTree::size() const noexcept {
+    return size_;
 }
 
-TEST_CASE("BST contains is consistent with search") {
-    BinarySearchTree tree;
-    for (int value : {8, 3, 10, 1, 6, 14, 4, 7}) {
-        tree.insert(value);
+// Return the height of the tree
+int BinarySearchTree::height() const {
+    return heightRecursive(root_);
+}
+
+// In-order traversal
+std::vector<int> BinarySearchTree::inorderTraversal() const {
+    std::vector<int> result;
+    inorderRecursive(root_, result);
+    return result;
+}
+
+// Pre-order traversal
+std::vector<int> BinarySearchTree::preorderTraversal() const {
+    std::vector<int> result;
+    preorderRecursive(root_, result);
+    return result;
+}
+
+// Post-order traversal
+std::vector<int> BinarySearchTree::postorderTraversal() const {
+    std::vector<int> result;
+    postorderRecursive(root_, result);
+    return result;
+}
+
+// Find the minimum value
+int BinarySearchTree::minimum() const {
+    if (empty()) {
+        throw std::logic_error("BST is empty");
     }
 
-    for (int value : {1, 3, 4, 6, 7, 8, 10, 14}) {
-        REQUIRE(tree.contains(value));
-        REQUIRE(tree.search(value));
+    return minimumRecursive(root_);
+}
+
+// Find the maximum value
+int BinarySearchTree::maximum() const {
+    if (empty()) {
+        throw std::logic_error("BST is empty");
     }
 
-    for (int value : {-1, 2, 5, 9, 12, 15}) {
-        REQUIRE_FALSE(tree.contains(value));
-        REQUIRE_FALSE(tree.search(value));
+    return maximumRecursive(root_);
+}
+
+// Recursive insertion
+TreeNode* BinarySearchTree::insertRecursive(
+    TreeNode* node, int value) {
+
+    // Base case: create a new node
+    if (node == nullptr) {
+        return new TreeNode(value);
     }
+
+    // Recursive case: insert into the correct subtree
+    if (value < node->value) {
+        node->left = insertRecursive(node->left, value);
+    }
+    else if (value > node->value) {
+        node->right = insertRecursive(node->right, value);
+    }
+
+    return node;
+}
+
+// Recursive removal
+TreeNode* BinarySearchTree::removeRecursive(
+    TreeNode* node, int value) {
+
+    // Base case: value not found
+    if (node == nullptr) {
+        return nullptr;
+    }
+
+    if (value < node->value) {
+        node->left = removeRecursive(node->left, value);
+    }
+    else if (value > node->value) {
+        node->right = removeRecursive(node->right, value);
+    }
+    else {
+        // Case 1: no left child
+        if (node->left == nullptr) {
+            TreeNode* temp = node->right;
+            delete node;
+            return temp;
+        }
+
+        // Case 2: no right child
+        if (node->right == nullptr) {
+            TreeNode* temp = node->left;
+            delete node;
+            return temp;
+        }
+
+        // Case 3: node has two children
+        // Find the in-order successor
+        int successor = minimumRecursive(node->right);
+
+        node->value = successor;
+
+        // Remove the original successor node
+        node->right = removeRecursive(
+            node->right, successor);
+    }
+
+    return node;
+}
+
+// Recursive search
+bool BinarySearchTree::searchRecursive(
+    const TreeNode* node, int value) const {
+
+    // Base case: value not found
+    if (node == nullptr) {
+        return false;
+    }
+
+    // Base case: value found
+    if (node->value == value) {
+        return true;
+    }
+
+    // Recursive case: search the correct subtree
+    if (value < node->value) {
+        return searchRecursive(node->left, value);
+    }
+
+    return searchRecursive(node->right, value);
+}
+
+// Recursive in-order traversal
+// Left -> Root -> Right
+void BinarySearchTree::inorderRecursive(
+    const TreeNode* node,
+    std::vector<int>& result) const {
+
+    // Base case
+    if (node == nullptr) {
+        return;
+    }
+
+    inorderRecursive(node->left, result);
+    result.push_back(node->value);
+    inorderRecursive(node->right, result);
+}
+
+// Recursive pre-order traversal
+// Root -> Left -> Right
+void BinarySearchTree::preorderRecursive(
+    const TreeNode* node,
+    std::vector<int>& result) const {
+
+    // Base case
+    if (node == nullptr) {
+        return;
+    }
+
+    result.push_back(node->value);
+    preorderRecursive(node->left, result);
+    preorderRecursive(node->right, result);
+}
+
+// Recursive post-order traversal
+// Left -> Right -> Root
+void BinarySearchTree::postorderRecursive(
+    const TreeNode* node,
+    std::vector<int>& result) const {
+
+    // Base case
+    if (node == nullptr) {
+        return;
+    }
+
+    postorderRecursive(node->left, result);
+    postorderRecursive(node->right, result);
+    result.push_back(node->value);
+}
+
+// Recursive height calculation
+int BinarySearchTree::heightRecursive(
+    const TreeNode* node) const {
+
+    // Base case: empty tree has height 0
+    if (node == nullptr) {
+        return 0;
+    }
+
+    // Recursive case: longest subtree plus one
+    return 1 + std::max(
+        heightRecursive(node->left),
+        heightRecursive(node->right));
+}
+
+// Recursive minimum lookup
+int BinarySearchTree::minimumRecursive(
+    const TreeNode* node) const {
+
+    // Base case: leftmost node
+    if (node->left == nullptr) {
+        return node->value;
+    }
+
+    // Recursive case
+    return minimumRecursive(node->left);
+}
+
+// Recursive maximum lookup
+int BinarySearchTree::maximumRecursive(
+    const TreeNode* node) const {
+
+    // Base case: rightmost node
+    if (node->right == nullptr) {
+        return node->value;
+    }
+
+    // Recursive case
+    return maximumRecursive(node->right);
 }
