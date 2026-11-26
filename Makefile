@@ -12,8 +12,8 @@ OBJ := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRC))
 MAIN_OBJ := $(BUILD_DIR)/main.o
 EXECUTABLE := $(BUILD_DIR)/main
 
-# Test sources (these contain Catch2 main)
-TEST_SRC := $(wildcard $(TEST_DIR)/*.cpp)
+# Test sources (contains the Catch2 test cases)
+TEST_SRC := $(filter-out $(TEST_DIR)/test_binary_search_tree.cpp,$(wildcard $(TEST_DIR)/*.cpp))
 TEST_OBJ := $(patsubst $(TEST_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(TEST_SRC))
 TEST_EXECUTABLE := $(BUILD_DIR)/test.out
 

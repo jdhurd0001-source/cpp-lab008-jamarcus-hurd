@@ -17,6 +17,10 @@ class BinarySearchTree {
 public:
     BinarySearchTree();
     ~BinarySearchTree();
+    BinarySearchTree(const BinarySearchTree& other);
+    BinarySearchTree& operator=(const BinarySearchTree& other);
+    BinarySearchTree(BinarySearchTree&& other) noexcept;
+    BinarySearchTree& operator=(BinarySearchTree&& other) noexcept;
 
     bool insert(int value);
     bool remove(int value);
@@ -47,4 +51,6 @@ private:
     int heightRecursive(const TreeNode* node) const;
     int minimumRecursive(const TreeNode* node) const;
     int maximumRecursive(const TreeNode* node) const;
+
+    void copySubtree(const TreeNode* source);
 };

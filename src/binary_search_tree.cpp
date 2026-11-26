@@ -1,8 +1,8 @@
-
 #include "project/binary_search_tree.h"
 
 #include <algorithm>
 #include <stdexcept>
+#include <utility>
 
 // Constructor
 BinarySearchTree::BinarySearchTree()
@@ -108,6 +108,52 @@ int BinarySearchTree::maximum() const {
     }
 
     return maximumRecursive(root_);
+}
+
+// Copy constructor
+BinarySearchTree::BinarySearchTree(const BinarySearchTree& other)
+    : root_(nullptr), size_(0) {
+
+    copySubtree(other.root_);
+}
+
+// Copy assignment
+BinarySearchTree& BinarySearchTree::operator=(const BinarySearchTree& other) {
+    if (this != &other) {
+        BinarySearchTree copy(other);
+        *this = std::move(copy);
+    }
+    return *this;
+}
+
+// Move constructor
+BinarySearchTree::BinarySearchTree(BinarySearchTree&& other) noexcept
+    : root_(other.root_), size_(other.size_) {
+
+    other.root_ = nullptr;
+    other.size_ = 0;
+}
+
+// Move assignment
+BinarySearchTree& BinarySearchTree::operator=(BinarySearchTree&& other) noexcept {
+    if (this != &other) {
+        deleteSubtree(root_);
+        root_ = other.root_;
+        size_ = other.size_;
+        other.root_ = nullptr;
+        other.size_ = 0;
+    }
+    return *this;
+}
+
+void BinarySearchTree::copySubtree(const TreeNode* source) {
+    if (source == nullptr) {
+        return;
+    }
+
+    insert(source->value);
+    copySubtree(source->left);
+    copySubtree(source->right);
 }
 
 // Recursive insertion
@@ -242,7 +288,7 @@ int BinarySearchTree::heightRecursive(
 
     // Base case: empty subtree
     if (node == nullptr) {
-        return -1;
+        return 0;
     }
 
     // Recursive case
